@@ -24,7 +24,8 @@ class GameAI:
         self.finished = 1
         self.info = {
             "dfs": [[], 0, False, pygame.transform.scale(pygame.image.load("images/dfs.png"), (self.sizeImage[0], self.sizeImage[1]))],
-            "bfs": [[], 0, False,  pygame.transform.scale(pygame.image.load("images/bfs.png"), (self.sizeImage[0], self.sizeImage[1]))]
+            "bfs": [[], 0, False,  pygame.transform.scale(pygame.image.load("images/bfs.png"), (self.sizeImage[0], self.sizeImage[1]))],
+            #"greendy": [[], 0, False,  pygame.transform.scale(pygame.image.load("images/bfs.png"), (self.sizeImage[0], self.sizeImage[1]))],
             }
         self.dx = 65
         self.dy = 0
@@ -122,12 +123,9 @@ class GameAI:
 
         while queue:
             x, y = queue.popleft()
-            
             if (x, y) == tuple(self.posEnd):
                 break
-            
-            random.shuffle(moves)
-            
+            random.shuffle(moves)   
             for d in moves:
                 nx, ny = x + d[0], y + d[1]
                 
@@ -143,13 +141,19 @@ class GameAI:
             current = parent[current]
         self.info["bfs"][0].reverse()
     
-    def AStart(self):
+    def Heuristic(self, current, next):
+        pass
+
+    def FindIntersection(self):
         pass
 
     def Greendy(self):
         pass
 
     def Ucs(self):
+        pass
+
+    def AStart(self):
         pass
 
     def RenderText(self):
