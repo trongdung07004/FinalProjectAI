@@ -328,15 +328,15 @@ class GameAI:
                     for i in range(0, len(self.rectMap)):
                         for j in range(0, len(self.rectMap)):
                             if self.rectMap[i][j] == self.mouseThroughRect[0]:                             
-                                    self.map[self.posStart[0]][self.posStart[1]] = 1
-                                    self.posStart[0] = i
-                                    self.posStart[1] = j
-                                    self.player[0] = j
-                                    self.player[1] = i
-                                    self.map[self.posStart[0]][self.posStart[1]] = 0
-                                    self.start = False
-                                    self.mouseThroughRect.clear()
-                                    return
+                                self.map[self.posStart[0]][self.posStart[1]] = 1
+                                self.posStart[0] = i
+                                self.posStart[1] = j
+                                self.player[0] = j
+                                self.player[1] = i
+                                self.map[self.posStart[0]][self.posStart[1]] = 0
+                                self.start = False
+                                self.mouseThroughRect.clear()
+                                return
                                 
                 elif event.key == pygame.K_2 and not self.isDragging and len(self.mouseThroughRect) == 1: 
                     for i in range(0, len(self.rectMap)):
