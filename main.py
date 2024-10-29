@@ -14,6 +14,7 @@ class GameAI:
         self.menu = True
         self.createMap = False
         self.isDragging = False
+        self.mouseThroughRect = []
         self.rectMenu = [pygame.Rect(400, 100, 400 ,100), pygame.Rect(400, 300, 400 ,100), pygame.Rect(400, 500, 400 ,100)]
         self.textMenu = ["Start", "Create Map", "Exit"]
         self.text = ["Player: ", "Dfs: ", "Bfs: "]
@@ -25,12 +26,12 @@ class GameAI:
         self.sizeMap = [29, 29]
         self.rectMap = []
         self.running = True
+        self.start = False
+        self.end = False
         self.map = np.ones((self.sizeMap[0], self.sizeMap[1]), dtype=int)
         self.sizeImage = [30, 30]
         self.posStart = [5, 5]
         self.posEnd = [26, 19]
-        self.start = False
-        self.end = False
         self.movePlayer = 0
         self.player = [5, 5]
         self.vec = [0, 0]
@@ -141,8 +142,9 @@ class GameAI:
                 current = parent[current]
             except:
                 print("NO WAY")
-                exit()
+                return False
         self.info["bfs"][0].reverse()
+        return True
 
     
     def Heuristic(self):
@@ -177,8 +179,7 @@ class GameAI:
                     self.Dfs()
                     self.Bfs()
                 elif i == 1:
-                    self.posStart.clear()
-                    self.posEnd.clear()
+                    self.map = np.zeros((self.sizeMap[0], self.sizeMap[1]), dtype=int)
                     self.createMap = True
                     for i in range(0, self.sizeMap[0]):
                         temp = []
@@ -266,16 +267,20 @@ class GameAI:
     def DrawRectMap(self):
         for i in range(0, len(self.rectMap)):
             for j in range(0, len(self.rectMap)):
+                if self.rectMap[i][j] in self.mouseThroughRect:
+                    pygame.draw.rect(self.win, (0, 255, 0), self.rectMap[i][j], 15)    
+                    continue
+
                 if not self.start and [i, j] == self.posStart:
-                    pygame.draw.rect(self.win, (0, 0, 255), self.rectMap[i][j], 1)    
+                    pygame.draw.rect(self.win, (0, 0, 255), self.rectMap[i][j], 15)    
                     continue
 
                 if not self.end and [i, j] == self.posEnd:
-                    pygame.draw.rect(self.win, (0, 0, 0), self.rectMap[i][j], 1)    
+                    pygame.draw.rect(self.win, (0, 0, 0), self.rectMap[i][j], 15)    
                     continue
 
-                if self.map[i][j] == 0:
-                    pygame.draw.rect(self.win, (255, 0, 0), self.rectMap[i][j], 1)    
+                if self.map[i][j] == 1:
+                    pygame.draw.rect(self.win, (255, 0, 0), self.rectMap[i][j], 15)    
                     continue
                 pygame.draw.rect(self.win, (0, 255, 0), self.rectMap[i][j], 1)
 
@@ -294,21 +299,70 @@ class GameAI:
         for i, j in self.info.items():
             self.win.blit(j[3],(j[0][j[1]][1]*self.sizeImage[0] + self.dx, j[0][j[1]][0]*self.sizeImage[1] + self.dy))
             
-    def CheckClickCreateMap(self, mousePos):
-        for i in range(0, len(self.rectMap)):
-            for j in range(0, len(self.rectMap)):
-                if self.rectMap[i][j].collidepoint(mousePos):
-                    self.map[i][j] = 0
-                    if self.start:
-                        self.posStart.append(i)
-                        self.posStart.append(j)
-                        self.player[0] = j
-                        self.player[1] = i
-                        self.start = False
-                    if self.end:
-                        self.posEnd.append(i)
-                        self.posEnd.append(j)
-                        self.end = False
+    def CheckClickCreateMap(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+
+            elif event.type == pygame.MOUSEBUTTONDOWN and not self.isDragging:
+                self.isDragging = True
+
+            elif event.type == pygame.MOUSEBUTTONUP and self.isDragging:
+                self.isDragging = False
+
+            elif event.type == pygame.MOUSEMOTION and self.isDragging:
+                mousePos = pygame.mouse.get_pos()
+                for row in self.rectMap:
+                    for rect in row:
+                        if rect.collidepoint(mousePos) and rect not in self.mouseThroughRect:
+                            self.mouseThroughRect.append(rect)
+                
+            if event.type == pygame.KEYDOWN: 
+                if event.key == pygame.K_s and self.Bfs():              
+                    self.Dfs()
+                    self.menu = False
+                    self.createMap = False
+
+                elif event.key == pygame.K_1 and not self.isDragging and len(self.mouseThroughRect) == 1: 
+                    print(len(self.mouseThroughRect))
+                    for i in range(0, len(self.rectMap)):
+                        for j in range(0, len(self.rectMap)):
+                            if self.rectMap[i][j] == self.mouseThroughRect[0]:                             
+                                    self.map[self.posStart[0]][self.posStart[1]] = 1
+                                    self.posStart[0] = i
+                                    self.posStart[1] = j
+                                    self.player[0] = j
+                                    self.player[1] = i
+                                    self.map[self.posStart[0]][self.posStart[1]] = 0
+                                    self.start = False
+                                    self.mouseThroughRect.clear()
+                                    return
+                                
+                elif event.key == pygame.K_2 and not self.isDragging and len(self.mouseThroughRect) == 1: 
+                    for i in range(0, len(self.rectMap)):
+                        for j in range(0, len(self.rectMap)):
+                            if self.rectMap[i][j] == self.mouseThroughRect[0]:      
+                                self.map[self.posEnd[0]][self.posEnd[1]] = 1
+                                self.posEnd[0] = i
+                                self.posEnd[1] = j
+                                self.map[self.posEnd[0]][self.posEnd[1]] = 0
+                                self.end = False
+                                self.mouseThroughRect.clear()
+                                return
+                            
+                        
+                elif event.key == pygame.K_3 and not self.isDragging and len(self.mouseThroughRect) > 0:
+                    for i in range(0, len(self.rectMap)):
+                        for j in range(0, len(self.rectMap)):
+                            if self.rectMap[i][j] in self.mouseThroughRect:
+                                self.map[i][j] = 1
+                    self.mouseThroughRect.clear()            
+                elif event.key == pygame.K_4 and not self.isDragging and len(self.mouseThroughRect) > 0: 
+                    for i in range(0, len(self.rectMap)):
+                        for j in range(0, len(self.rectMap)):
+                            if self.rectMap[i][j] in self.mouseThroughRect:
+                                self.map[i][j] = 0
+                    self.mouseThroughRect.clear()
                     
     def Run(self):
         while self.running:
@@ -346,40 +400,7 @@ class GameAI:
                     self.win.fill((255, 255, 255))
                     self.DrawRectMap()
                     self.RenderTextCreateMap()
-                    for event in pygame.event.get():
-                        if event.type == pygame.QUIT:
-                            self.running = False
-
-                        mousePos = pygame.mouse.get_pos()
-                        if event.type == pygame.MOUSEBUTTONDOWN:
-                            if event.button == 1:
-                                self.CheckClickCreateMap(mousePos)
-                        
-                        # if event.type == pygame.MOUSEBUTTONDOWN:
-                        #     if event.button == 1:  
-                                
-                            
-                        # elif event.type == pygame.MOUSEBUTTONUP:
-                        #     if event.button == 1:
-                                
-
-                        # elif event.type == pygame.MOUSEMOTION:
-                            
-
-
-                        if event.type == pygame.KEYDOWN and not self.playerFinish:
-
-                            if event.key == pygame.K_s:
-                                self.createMap = False
-                                self.menu = False
-                                self.Dfs()
-                                self.Bfs()
-
-                            if event.key == pygame.K_t and not self.start:
-                                self.start = True
-
-                            if event.key == pygame.K_e and not self.end:
-                                self.end = True
+                    self.CheckClickCreateMap()
                     pygame.display.update()
                     continue
                     
