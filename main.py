@@ -18,7 +18,6 @@ class GameAI:
         self.mouseThroughRect = []
         self.rectMenu = [pygame.Rect(500, 100, 200 ,100), pygame.Rect(500, 300, 200 ,100), pygame.Rect(500, 500, 200 ,100)]
         self.textMenu = ["Start", "Create Map", "Exit"]
-        self.text = ["Player: ", "Dfs: ", "Bfs: "]
         self.textCreateMap = [ "Press and drag the mouse to", "select the region", 
                             "after selected a region",
                             "Press 1 to set the start position",
@@ -38,21 +37,21 @@ class GameAI:
         self.posEnd = [26, 19]
         self.movePlayer = 0
         self.player = [5, 5]
+        self.textPlayer = "Player"
         self.vec = [0, 0]
         self.playerFinish = False
-        self.finished = 1
         self.info = {
-            "dfs": [[], 0, False, pygame.transform.scale(pygame.image.load("images/dfs.png"), (self.sizeImage[0], self.sizeImage[1])), (255, 0, 0), pygame.rect.Rect(870, 1*100 + 150, 20, 20), False],
-            "bfs": [[], 0, False,  pygame.transform.scale(pygame.image.load("images/bfs.png"), (self.sizeImage[0], self.sizeImage[1])), (255, 0, 0), pygame.rect.Rect(870, 2*100 + 150, 20, 20), False],
+            "dfs": [[], 0, False, pygame.transform.scale(pygame.image.load("images/dfs.png"), (self.sizeImage[0], self.sizeImage[1])), (255, 0, 0), pygame.rect.Rect(870, 1*100 + 150, 20, 20), False, "Dfs"],
+            "bfs": [[], 0, False,  pygame.transform.scale(pygame.image.load("images/bfs.png"), (self.sizeImage[0], self.sizeImage[1])), (255, 0, 0), pygame.rect.Rect(870, 2*100 + 150, 20, 20), False, "Bfs"],
             #"greendy": [[], 0, False,  pygame.transform.scale(pygame.image.load("images/bfs.png"), (self.sizeImage[0], self.sizeImage[1]))],
             }
-        self.dx = 65
+        self.dx = 45
         self.dy = 10
         self.images = [
             pygame.transform.scale(pygame.image.load("images/finish.png"), (self.sizeImage[0], self.sizeImage[1])),
             pygame.transform.scale(pygame.image.load("images/10.png"), (self.sizeImage[0], self.sizeImage[1])),
             pygame.transform.scale(pygame.image.load("images/player.png"), (self.sizeImage[0], self.sizeImage[1])),
-            pygame.transform.scale(pygame.image.load("images/bg.png"), (1190, 800)),
+            pygame.transform.scale(pygame.image.load("images/bg.png"), (1220, 800)),
         ]
 
     # Algorithm
@@ -192,12 +191,18 @@ class GameAI:
                         self.menu = False
                         self.createMap = False
                     else:
-                        font = pygame.font.Font(None, 40)
-                        textRender = font.render("No Way", True, (0, 0, 0))
-                        self.win.blit(textRender, ((1200 - textRender.get_size()[0]) / 2, 400))
+                        font = pygame.font.Font(None, 80)
+                        font.bold = True
+                        textRender = font.render("No Way", True, (255, 0, 0))
+                        self.win.blit(textRender, ((1200 - textRender.get_size()[0]) // 2, 400))
                         pygame.display.update()
                         pygame.time.delay(2000)
-
+                elif event.key == pygame.K_ESCAPE and self.createMap:
+                    self.map = np.ones((self.sizeMap[0], self.sizeMap[1]), dtype=int)
+                    self.createMap = False
+                    self.posStart = [5, 5]
+                    self.posEnd = [26, 19]
+                
                 elif event.key == pygame.K_1 and not self.isDragging and len(self.mouseThroughRect) == 1: 
                     for i in range(0, len(self.rectMap)):
                         for j in range(0, len(self.rectMap)):
@@ -247,21 +252,24 @@ class GameAI:
             self.win.blit(textRender, (400 + (400 - size[0])/2, self.rectMenu[i].centery - textRender.get_size()[1] // 2))
     
     def RenderText(self):
+        rect = pygame.rect.Rect(self.dx + self.sizeImage[0] * self.sizeMap[0] + 20, 0, self.win.get_size()[0] - (55 + self.dx + self.sizeImage[0] * self.sizeMap[0]), 800)
+        pygame.draw.rect(self.win, (10, 10, 10),rect , 2, 5)
+        self.font.bold = False
         textRender = self.font.render("Time: " + str(self.time // 60) + "s", True, (0, 0, 0))
-        self.win.blit(textRender,(970, 50))
-        for i in range(0, 3):
-            textRender = self.font.render(self.text[i], True, (0, 0, 0))
-            self.win.blit(textRender,(910, i*100 + 150))
-            if not self.playerFinish and self.text[i] == "Player: ":
-                self.win.blit(self.images[i + 2], (1000, i*100 + 145))
+        self.win.blit(textRender,(rect.centerx - textRender.get_size()[0] // 2, self.dy))
 
-            if not self.info["dfs"][2] and self.text[i] == "Dfs: ":
-                pygame.draw.rect(self.win, self.info["dfs"][4], self.info["dfs"][5], 10, 8)
-                self.win.blit(self.info["dfs"][3], (1000, i*100 + 145))
-
-            if not self.info["bfs"][2] and self.text[i] == "Bfs: ":
-                pygame.draw.rect(self.win, self.info["bfs"][4], self.info["bfs"][5], 10, 8)
-                self.win.blit(self.info["bfs"][3], (1000, i*100 + 145))
+        dy = 0
+        textRender = self.font.render(self.textPlayer, True, (0, 0, 0))
+        self.win.blit(textRender,(self.sizeImage[0] * self.sizeMap[0] + 130, dy + 147))  
+        if not self.playerFinish:
+            self.win.blit(self.images[2], (self.sizeImage[0] * self.sizeMap[0] + 220, dy + 145))
+        for i,j in self.info.items():
+            dy += 100
+            textRender = self.font.render(self.info[i][7], True, (0, 0, 0))
+            self.win.blit(textRender,(self.sizeImage[0] * self.sizeMap[0] + 130, dy + 147))          
+            if not self.info[i][2]:
+                pygame.draw.rect(self.win, self.info[i][4], self.info[i][5], 10, 4)
+                self.win.blit(self.info[i][3], (self.sizeImage[0] * self.sizeMap[0] + 220, dy + 145))
 
     def RenderTextCreateMap(self):
         font = pygame.font.Font(None, 28)
@@ -273,11 +281,12 @@ class GameAI:
             else:
                 self.win.blit(textRender,(880, i*20 + 130))
         
-    def CheckButtonMenu(self, mousePos, click):
+    def CheckMouseMenu(self, mousePos, click):
         cursorHand = False
         for i in range(0, len(self.rectMenu)):
             if self.rectMenu[i].collidepoint(mousePos) and click:
                 if i == 0:
+                    self.map = np.ones((self.sizeMap[0], self.sizeMap[1]), dtype=int)
                     self.menu = False
                     self.CreateMap()
                     self.Dfs()
@@ -307,28 +316,20 @@ class GameAI:
 
     ## Logic
     def MovePlayer(self):
-        if self.map[self.player[1] + self.vec[1]][self.player[0] + self.vec[0]] == 0 or self.map[self.player[1] + self.vec[1]][self.player[0] + self.vec[0]] == 2:
-            if self.vec[0] != 0 or self.vec[1] != 0:
-                self.movePlayer += 1
-
+        if self.map[self.player[1] + self.vec[1]][self.player[0] + self.vec[0]] == 0 and (self.vec[0] != 0 or self.vec[1] != 0):
+            self.movePlayer += 1
             self.player[0] += self.vec[0]
             self.player[1] += self.vec[1]
             
         if self.player[0] == self.posEnd[1] and self.player[1] == self.posEnd[0] and not self.playerFinish:
-            self.text[0] += str(self.finished) + " T: " + str(self.movePlayer + 1)
-            self.finished += 1
+            self.textPlayer += "  STEP: " + str(self.movePlayer)
             self.playerFinish = True
 
     def CheckWinBot(self):
-        if self.info["dfs"][1] == len(self.info["dfs"][0]) - 1 and not self.info["dfs"][2]:
-            self.text[1] += str(self.finished) + " T: " + str(len(self.info["dfs"][0]))
-            self.finished += 1
-            self.info["dfs"][2] = True
-
-        if self.info["bfs"][1] == len(self.info["bfs"][0]) - 1 and not self.info["bfs"][2]:
-            self.text[2] += str(self.finished) + " T: " + str(len(self.info["bfs"][0]))
-            self.finished += 1
-            self.info["bfs"][2] = True
+        for i, j in self.info.items():
+            if self.info[i][1] == len(self.info[i][0]) - 1 and not self.info[i][2]:
+                self.info[i][7] += "  STEP: " + str(len(self.info[i][0]) - 1)
+                self.info[i][2] = True
         
     def CheckOnBot(self, mousePos):
         for i, j in self.info.items():
@@ -351,8 +352,8 @@ class GameAI:
                 if not self.info[i][2]:
                     return False
 
-            textRender = self.font.render("End Game", True, (0, 0, 0))
-            self.win.blit(textRender,(970, 550))
+            textRender = self.font.render("End Game", True, (255, 0, 0))
+            self.win.blit(textRender,((self.win.get_size()[0] - textRender.get_size()[0]) // 2, (self.win.get_size()[1] - textRender.get_size()[1]) // 2))
             pygame.display.update()
             return True
 
@@ -360,7 +361,7 @@ class GameAI:
 
     ## Dynamic Display
     def DrawRectMap(self):
-        pygame.draw.rect(self.win, (0, 255, 255), (self.dx - 10, 0, self.sizeMap[0] * self.sizeImage[0] + 20, 800), 2, 5)
+        pygame.draw.rect(self.win, (10, 10, 10), (self.dx - 10, 0, self.sizeMap[0] * self.sizeImage[0] + 20, 800), 2, 5)
         for i in range(0, len(self.rectMap)):
             for j in range(0, len(self.rectMap)):
                 if self.rectMap[i][j] in self.mouseThroughRect:
@@ -377,19 +378,18 @@ class GameAI:
                     
                 pygame.draw.rect(self.win, (0, 0, 0), self.rectMap[i][j], 1, 5)
 
-
     def DrawMap(self):
-        pygame.draw.rect(self.win, (0, 255, 255), (self.dx - 10, 0, self.sizeMap[0] * self.sizeImage[0] + 20, 800), 2, 5)
+        pygame.draw.rect(self.win, (10, 10, 10), (self.dx - 10, 0, self.sizeMap[0] * self.sizeImage[0] + 20, 800), 2, 5)
         for i in range(0, self.sizeMap[0]):
             for j in range(0, self.sizeMap[1]):
                 if self.map[i][j] == 1:
                     self.win.blit(self.images[1], (j * self.sizeImage[0] + self.dx, i * self.sizeImage[1] + self.dy))
                 else:
-                    pygame.draw.rect(self.win, (0, 0, 0), pygame.rect.Rect(j * self.sizeImage[0] + self.dx, i * self.sizeImage[1] + self.dy, self.sizeImage[0], self.sizeImage[1]), 1, 5)
+                    pygame.draw.rect(self.win, (0, 0, 0), pygame.rect.Rect(j * self.sizeImage[0] + self.dx, i * self.sizeImage[1] + self.dy, self.sizeImage[0], self.sizeImage[1]), 1, 3)
 
         self.win.blit(self.images[0], (self.posEnd[1] * self.sizeImage[0] + self.dx, self.posEnd[0] * self.sizeImage[1] + self.dy))
     
-    def DrawPlayers(self):
+    def DrawPlayer(self):
         self.win.blit(self.images[2],(self.player[0]*self.sizeImage[0] + self.dx, self.player[1]*self.sizeImage[1] + self.dy))
           
     def DrawBot(self):
@@ -400,25 +400,38 @@ class GameAI:
     def Run(self):
         while self.running:
             if not self.menu:
-                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
                 self.vec[0], self.vec[1] = 0, 0
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         self.running = False
         
-                    if event.type == pygame.KEYDOWN and not self.playerFinish:
-                        if event.key == pygame.K_a:  
-                            self.vec[0] = -1
-                        elif event.key == pygame.K_d:  
-                            self.vec[0] = 1
-                        elif event.key == pygame.K_w:  
-                            self.vec[1] = -1
-                        elif event.key == pygame.K_s: 
-                            self.vec[1] = 1
+                    if event.type == pygame.KEYDOWN:
+                        if not self.playerFinish:
+                            if event.key == pygame.K_a:  
+                                self.vec[0] = -1
+                            elif event.key == pygame.K_d:  
+                                self.vec[0] = 1
+                            elif event.key == pygame.K_w:  
+                                self.vec[1] = -1
+                            elif event.key == pygame.K_s: 
+                                self.vec[1] = 1
                     
+                        if event.key == pygame.K_ESCAPE and not self.menu:
+                            self.menu = True
+                            for i, j in self.info.items():
+                                self.info[i][0].clear()
+                                self.info[i][1] = 0
+                                self.info[i][2] = False
+                                self.info[i][6] = False
+                                self.info[i][4] = (255, 0, 0)
+                            break
+
                     if event.type == pygame.MOUSEBUTTONDOWN:
                         mousePos = pygame.mouse.get_pos()
                         self.CheckOnBot(mousePos)
+
+                if self.menu:
+                    continue 
 
                 if (self.CheckEndGame()):
                     pygame.time.delay(5000)
@@ -429,7 +442,7 @@ class GameAI:
                 self.DrawBot()
                 self.CheckWinBot()
                 self.MovePlayer()
-                self.DrawPlayers()
+                self.DrawPlayer()
                 self.MoveBots()
                 self.RenderText()
                 self.fps.tick(60)
@@ -443,7 +456,6 @@ class GameAI:
                     pygame.display.update()
                     continue
                     
-                self.win.fill((255, 255, 255))
                 self.RenderMenu()
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
@@ -451,9 +463,11 @@ class GameAI:
                     mousePos = pygame.mouse.get_pos()
                     if event.type == pygame.MOUSEBUTTONDOWN:
                         if event.button == 1:
-                            self.CheckButtonMenu(mousePos, True)
-                self.CheckButtonMenu(mousePos, False)
+                            self.CheckMouseMenu(mousePos, True)
+                self.CheckMouseMenu(mousePos, False)
             pygame.display.update()
+
+
 
 if "__main__" == __name__:
     run = GameAI()
