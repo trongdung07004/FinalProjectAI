@@ -124,9 +124,6 @@ class GameAI:
         self.info["bfs"][0].reverse()
         return True
 
-
-        pass
-
     def Greendy(self):
         pass
 
