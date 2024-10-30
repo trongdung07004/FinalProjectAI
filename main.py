@@ -11,6 +11,7 @@ class GameAI:
         pygame.display.set_caption("Game AI")
         self.fps = pygame.time.Clock()
         self.font = pygame.font.Font(None, 36)
+        
         self.menu = True
         self.createMap = False
         self.isDragging = False
@@ -277,7 +278,6 @@ class GameAI:
         
     def CheckButtonMenu(self, mousePos, click):
         cursorHand = False
-        print("ok")
         for i in range(0, len(self.rectMenu)):
             if self.rectMenu[i].collidepoint(mousePos) and click:
                 if i == 0:
@@ -298,15 +298,15 @@ class GameAI:
                     self.running = False
 
             if self.rectMenu[i].collidepoint(mousePos):
-                cursorHand = True
                 self.font.bold = True
+                cursorHand = True
                 textRender = self.font.render(self.textMenu[i] , True, (255, 165, 0))
                 size = textRender.get_size()
                 pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
                 self.win.blit(textRender, (400 + (400 - size[0])/2, self.rectMenu[i].centery - textRender.get_size()[1] // 2))
 
-            if not cursorHand:
-                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+        if not cursorHand:
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
 
     ## Logic
     def MovePlayer(self):
