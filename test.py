@@ -167,7 +167,7 @@ class GameAI:
         visited = set()
         visited.add(tuple(self.posStart))
         current = self.posStart
-        self.info["hillclimbing"][0].append(tuple(current))
+        self.info["hillclimbing"][0].append(current)
 
         while True:
             a = self.FindIntersection(current, visited)

@@ -47,6 +47,7 @@ class GameAI:
         self.textPlayer = "Player"
         self.vec = [0, 0]
         self.playerFinish = False
+        self.activeAllBots = [pygame.rect.Rect(870, 200, 20, 20), (255, 0, 0), False]
         self.info = {
             "dfs": [
                 [],
@@ -85,7 +86,7 @@ class GameAI:
                 (255, 0, 0),
                 pygame.rect.Rect(870, 3 * 100 + 150, 20, 20),
                 False,
-                "Hillclimb",
+                "Hcb",
             ],
             # "greedy": [[], 0, False, pygame.transform.scale(pygame.image.load("images/greedy.png"), (self.sizeImage[0], self.sizeImage[1])), (255, 0, 0), pygame.rect.Rect(870, 3*100 + 150, 20, 20), False, "Greedy"],
             # "aStar": [[], 0, False, pygame.transform.scale(pygame.image.load("images/astar.png"), (self.sizeImage[0], self.sizeImage[1])), (255, 0, 0), pygame.rect.Rect(870, 5*100 + 150, 20, 20), False, "A*"]
@@ -236,12 +237,12 @@ class GameAI:
                 return
             elif a[1] == 0:
                 for i in a[2]:
-                    self.info["hillclimbing"][0].append(i)
-                self.info["hillclimbing"][0].append(self.posEnd)
+                    self.info["hillclimbing"][0].append(tuple(i))
+                self.info["hillclimbing"][0].append(tuple(self.posEnd))
                 return
             current = a[0]
             for i in a[2]:
-                self.info["hillclimbing"][0].append(i)
+                self.info["hillclimbing"][0].append(tuple(i))
             visited.add(tuple(current))
 
     def Greedy(self):
@@ -416,7 +417,9 @@ class GameAI:
         self.win.blit(
             textRender, (rect.centerx - textRender.get_size()[0] // 2, self.dy)
         )
-
+        pygame.draw.rect(
+            self.win, (self.activeAllBots[1]), self.activeAllBots[0], 10, 4
+        )
         dy = 0
         textRender = self.font.render(self.textPlayer, True, (0, 0, 0))
         self.win.blit(textRender, (self.sizeImage[0] * self.sizeMap[0] + 130, dy + 147))
@@ -517,18 +520,37 @@ class GameAI:
     def CheckWinBot(self):
         for i, j in self.info.items():
             if self.info[i][1] == len(self.info[i][0]) - 1 and not self.info[i][2]:
-                self.info[i][7] += "  STEP: " + str(len(self.info[i][0]) - 1)
-                self.info[i][2] = True
+                if self.info[i][0][-1] == tuple(self.posEnd):
+                    self.info[i][7] += " YES STEP: " + str(len(self.info[i][0]) - 1)
+                    self.info[i][2] = True
+                else:
+                    self.info[i][7] += " NO STEP: " + str(len(self.info[i][0]) - 1)
+                    self.info[i][2] = True
 
     def CheckOnBot(self, mousePos):
-        for i, j in self.info.items():
-            if self.info[i][5].collidepoint(mousePos) and self.info[i][6]:
-                self.info[i][4] = (255, 0, 0)
-                self.info[i][6] = False
+        if self.activeAllBots[0].collidepoint(mousePos):
+            if self.activeAllBots[2]:
+                self.activeAllBots[1] = (255, 0, 0)
+                self.activeAllBots[2] = False
+                for i, j in self.info.items():
+                    self.info[i][4] = (255, 0, 0)
+                    self.info[i][6] = False
 
-            elif self.info[i][5].collidepoint(mousePos) and not self.info[i][6]:
-                self.info[i][4] = (0, 255, 0)
-                self.info[i][6] = True
+            elif not self.activeAllBots[2]:
+                self.activeAllBots[1] = (0, 255, 0)
+                self.activeAllBots[2] = True
+                for i, j in self.info.items():
+                    self.info[i][4] = (0, 255, 0)
+                    self.info[i][6] = True
+            return
+        for i, j in self.info.items():
+            if self.info[i][5].collidepoint(mousePos):
+                if self.info[i][6]:
+                    self.info[i][4] = (255, 0, 0)
+                    self.info[i][6] = False
+                elif not self.info[i][6]:
+                    self.info[i][4] = (0, 255, 0)
+                    self.info[i][6] = True
 
     def MoveBots(self):
         for i, j in self.info.items():
