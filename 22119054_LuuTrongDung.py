@@ -31,7 +31,6 @@ class GameAI:
             "Press 2 to set the end position",
             "Press 3 to create a wall",
             "Press 4 to delete",
-            "Press s to start game",
         ]
         self.sizeMap = [29, 29]
         self.rectMap = []
@@ -92,9 +91,7 @@ class GameAI:
             # "greedy": [[], 0, False, pygame.transform.scale(pygame.image.load("images/greedy.png"), (self.sizeImage[0], self.sizeImage[1])), (255, 0, 0), pygame.rect.Rect(870, 3*100 + 150, 20, 20), False, "Greedy"],
             # "aStar": [[], 0, False, pygame.transform.scale(pygame.image.load("images/astar.png"), (self.sizeImage[0], self.sizeImage[1])), (255, 0, 0), pygame.rect.Rect(870, 5*100 + 150, 20, 20), False, "A*"]
         }
-        self.heuristics = {
-            "hillclimbing": [],
-        }
+
         self.dx = 45
         self.dy = 10
         self.images = [
@@ -195,6 +192,7 @@ class GameAI:
                 visited.add(tuple([x, y]))
 
         intersection = None
+
         for i in temp:
             path = [i]
             count = None
@@ -219,17 +217,15 @@ class GameAI:
 
                 if count >= 2:
                     heuristic = self.Heuristic([x, y])
-                    if intersection is None or heuristic < intersection[1]:
+                    if intersection is None or intersection[1] > heuristic:
                         intersection = [[x, y], heuristic, path[:]]
                     break
                 elif count == 1:
                     visited.add(tuple(a))
                     path.append(a)
-
         return intersection
 
     def Hillclimbing(self):
-        self.heuristics["hillclimbing"].append(self.Heuristic(self.posStart))
         visited = set()
         visited.add(tuple(self.posStart))
         current = self.posStart
@@ -242,13 +238,9 @@ class GameAI:
             elif a[1] == 0:
                 for i in a[2]:
                     self.info["hillclimbing"][0].append(tuple(i))
-
                 self.info["hillclimbing"][0].append(tuple(self.posEnd))
                 return
-            elif a[1] > self.heuristics["hillclimbing"][-1]:
-                return
             current = a[0]
-            self.heuristics["hillclimbing"].append(a[1])
             for i in a[2]:
                 self.info["hillclimbing"][0].append(tuple(i))
             visited.add(tuple(current))
@@ -335,11 +327,10 @@ class GameAI:
                         pygame.display.update()
                         pygame.time.delay(2000)
                 elif event.key == pygame.K_ESCAPE and self.createMap:
-                    # self.map = np.ones((self.sizeMap[0], self.sizeMap[1]), dtype=int)
-                    # self.createMap = False
-                    # self.posStart = [5, 5]
-                    # self.posEnd = [26, 19]
-                    self.__init__()
+                    self.map = np.ones((self.sizeMap[0], self.sizeMap[1]), dtype=int)
+                    self.createMap = False
+                    self.posStart = [5, 5]
+                    self.posEnd = [26, 19]
 
                 elif (
                     event.key == pygame.K_1
@@ -451,6 +442,7 @@ class GameAI:
 
     def RenderTextCreateMap(self):
         font = pygame.font.Font(None, 28)
+        pygame.draw.rect(self.win, (255, 0, 0), pygame.rect.Rect(870, 120, 305, 200), 3)
         for i in range(0, len(self.textCreateMap)):
             textRender = font.render(self.textCreateMap[i], True, (0, 0, 0))
             if i > 1:
@@ -691,7 +683,13 @@ class GameAI:
                                 self.vec[1] = 1
 
                         if event.key == pygame.K_ESCAPE and not self.menu:
-                            self.__init__()
+                            self.menu = True
+                            for i, j in self.info.items():
+                                self.info[i][0].clear()
+                                self.info[i][1] = 0
+                                self.info[i][2] = False
+                                self.info[i][6] = False
+                                self.info[i][4] = (255, 0, 0)
                             break
 
                     if event.type == pygame.MOUSEBUTTONDOWN:
