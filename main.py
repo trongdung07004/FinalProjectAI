@@ -92,6 +92,13 @@ class GameAI:
             # "greedy": [[], 0, False, pygame.transform.scale(pygame.image.load("images/greedy.png"), (self.sizeImage[0], self.sizeImage[1])), (255, 0, 0), pygame.rect.Rect(870, 3*100 + 150, 20, 20), False, "Greedy"],
             # "aStar": [[], 0, False, pygame.transform.scale(pygame.image.load("images/astar.png"), (self.sizeImage[0], self.sizeImage[1])), (255, 0, 0), pygame.rect.Rect(870, 5*100 + 150, 20, 20), False, "A*"]
         }
+        self.allPath = {
+            "dfs": [[], (95, 87, 78)],
+            "bfs": [[], (174, 195, 240)],
+            "hillclimbing": [[], (70, 94, 86)],
+            # "greedy":[[], (236, 239, 243)],
+            # "aStar":[[], (16, 102, 114)]
+        }
         self.heuristics = {
             "hillclimbing": [],
         }
@@ -120,7 +127,6 @@ class GameAI:
         moves = [(0, -1), (-1, 0), (0, 1), (1, 0)]
         visited = set()
         visited.add(tuple(self.posStart))
-
         while self.info["dfs"][0][-1] != tuple(self.posEnd):
             x, y = self.info["dfs"][0][-1]
             foundMove = False
@@ -144,6 +150,8 @@ class GameAI:
                 else:
                     break
 
+        self.allPath["dfs"][0] = self.info["dfs"][0]
+
     def Bfs(self):
         queue = deque([tuple(self.posStart)])
         visited = set()
@@ -151,10 +159,11 @@ class GameAI:
         parent = {}
         parent[tuple(self.posStart)] = None
         moves = [(0, -1), (-1, 0), (0, 1), (1, 0)]
-
+        allPath = [tuple(self.posStart)]
         while queue:
             x, y = queue.popleft()
             if (x, y) == tuple(self.posEnd):
+
                 break
             random.shuffle(moves)
             for d in moves:
@@ -164,9 +173,12 @@ class GameAI:
                     if (nx, ny) not in visited and self.map[nx][ny] != 1:
                         visited.add((nx, ny))
                         queue.append((nx, ny))
+                        allPath.append((nx, ny))
                         parent[(nx, ny)] = (x, y)
 
         current = tuple(self.posEnd)
+        allPath.append(tuple(self.posEnd))
+        self.allPath["bfs"][0] = allPath
         while current:
             self.info["bfs"][0].append(current)
             try:
@@ -179,10 +191,10 @@ class GameAI:
     def Heuristic(self, current):
         return abs(current[0] - self.posEnd[0]) + abs(current[1] - self.posEnd[1])
 
-    def FindIntersection(self, current, visited):
+    def FindIntersectionHillclimbing(self, current, visited):
         moves = [(0, -1), (-1, 0), (0, 1), (1, 0)]
         temp = []
-
+        self.allPath["hillclimbing"][0].append((current))
         for d in moves:
             x, y = current[0] + d[0], current[1] + d[1]
             if (
@@ -198,7 +210,6 @@ class GameAI:
         for i in temp:
             path = [i]
             count = None
-
             while count != 0:
                 x, y = path[-1]
                 count = 0
@@ -221,6 +232,8 @@ class GameAI:
                     heuristic = self.Heuristic([x, y])
                     if intersection is None or heuristic < intersection[1]:
                         intersection = [[x, y], heuristic, path[:]]
+                    for i in path:
+                        self.allPath["hillclimbing"][0].append((i))
                     break
                 elif count == 1:
                     visited.add(tuple(a))
@@ -234,18 +247,16 @@ class GameAI:
         visited.add(tuple(self.posStart))
         current = self.posStart
         self.info["hillclimbing"][0].append(tuple(current))
-
         while True:
-            a = self.FindIntersection(current, visited)
-            if a is None:
+            a = self.FindIntersectionHillclimbing(current, visited)
+            if a is None or a[1] > self.heuristics["hillclimbing"][-1]:
+                self.allPath["hillclimbing"][0] = list(visited)
                 return
             elif a[1] == 0:
                 for i in a[2]:
                     self.info["hillclimbing"][0].append(tuple(i))
 
                 self.info["hillclimbing"][0].append(tuple(self.posEnd))
-                return
-            elif a[1] > self.heuristics["hillclimbing"][-1]:
                 return
             current = a[0]
             self.heuristics["hillclimbing"].append(a[1])
@@ -571,6 +582,7 @@ class GameAI:
                 if not self.info[i][2]:
                     return False
 
+            self.DrawAllPathBots()
             textRender = self.font.render("End Game", True, (255, 0, 0))
             self.win.blit(
                 textRender,
@@ -580,8 +592,8 @@ class GameAI:
                 ),
             )
             pygame.display.update()
+            pygame.time.delay(5000)
             return True
-
         return False
 
     ## Dynamic Display
@@ -670,6 +682,29 @@ class GameAI:
                 ),
             )
 
+    def DrawAllPathBots(self):
+        for i, j in self.allPath.items():
+            self.RenderText()
+            self.DrawMap()
+            self.DrawBot()
+            self.DrawPlayer()
+            for x in j[0]:
+                pygame.draw.rect(
+                    self.win,
+                    j[1],
+                    pygame.rect.Rect(
+                        x[1] * self.sizeImage[0] + self.dx,
+                        x[0] * self.sizeImage[1] + self.dy,
+                        self.sizeImage[0],
+                        self.sizeImage[1],
+                    ),
+                    15,
+                    5,
+                )
+                pygame.display.update()
+                pygame.time.delay(100)
+            self.win.fill((240, 248, 255))
+
     ##
     def Run(self):
         while self.running:
@@ -702,8 +737,8 @@ class GameAI:
                     continue
 
                 if self.CheckEndGame():
-                    pygame.time.delay(5000)
-                    self.running = False
+                    self.__init__()
+                    continue
 
                 self.win.fill((240, 248, 255))
                 self.DrawMap()
