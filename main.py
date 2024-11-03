@@ -13,6 +13,8 @@ class GameAI:
         self.fps = pygame.time.Clock()
         self.font = pygame.font.Font(None, 36)
 
+        self.dx = 45
+        self.dy = 10
         self.menu = True
         self.createMap = False
         self.isDragging = False
@@ -37,6 +39,7 @@ class GameAI:
         self.rectMap = []
         self.running = True
         self.time = 0
+        self.speed = [1, pygame.rect.Rect(950, 200, 0, 0)]
         self.start = False
         self.end = False
         self.map = np.ones((self.sizeMap[0], self.sizeMap[1]), dtype=int)
@@ -44,6 +47,9 @@ class GameAI:
         self.posStart = [5, 5]
         self.posEnd = [26, 19]
         self.movePlayer = 0
+        self.skipPlayer = pygame.rect.Rect(
+            self.sizeImage[0] * self.sizeMap[0] + 320, 147, 0, 0
+        )
         self.player = [5, 5]
         self.textPlayer = "Player"
         self.vec = [0, 0]
@@ -62,6 +68,7 @@ class GameAI:
                 pygame.rect.Rect(870, 1 * 100 + 150, 20, 20),
                 False,
                 "Dfs",
+                0,
             ],
             "bfs": [
                 [],
@@ -75,6 +82,7 @@ class GameAI:
                 pygame.rect.Rect(870, 2 * 100 + 150, 20, 20),
                 False,
                 "Bfs",
+                0,
             ],
             "hillclimbing": [
                 [],
@@ -88,9 +96,10 @@ class GameAI:
                 pygame.rect.Rect(870, 3 * 100 + 150, 20, 20),
                 False,
                 "Hcb",
+                0,
             ],
-            # "greedy": [[], 0, False, pygame.transform.scale(pygame.image.load("images/greedy.png"), (self.sizeImage[0], self.sizeImage[1])), (255, 0, 0), pygame.rect.Rect(870, 3*100 + 150, 20, 20), False, "Greedy"],
-            # "aStar": [[], 0, False, pygame.transform.scale(pygame.image.load("images/astar.png"), (self.sizeImage[0], self.sizeImage[1])), (255, 0, 0), pygame.rect.Rect(870, 5*100 + 150, 20, 20), False, "A*"]
+            # "greedy": [[], 0, False, pygame.transform.scale(pygame.image.load("images/greedy.png"), (self.sizeImage[0], self.sizeImage[1])), (255, 0, 0), pygame.rect.Rect(870, 3*100 + 150, 20, 20), False, "Greedy", 0],
+            # "aStar": [[], 0, False, pygame.transform.scale(pygame.image.load("images/astar.png"), (self.sizeImage[0], self.sizeImage[1])), (255, 0, 0), pygame.rect.Rect(870, 5*100 + 150, 20, 20), False, "A*", 0]
         }
         self.allPath = {
             "dfs": [[], (95, 87, 78)],
@@ -102,8 +111,6 @@ class GameAI:
         self.heuristics = {
             "hillclimbing": [],
         }
-        self.dx = 45
-        self.dy = 10
         self.images = [
             pygame.transform.scale(
                 pygame.image.load("images/finish.png"),
@@ -250,13 +257,14 @@ class GameAI:
         while True:
             a = self.FindIntersectionHillclimbing(current, visited)
             if a is None or a[1] > self.heuristics["hillclimbing"][-1]:
-                self.allPath["hillclimbing"][0] = list(visited)
                 return
             elif a[1] == 0:
                 for i in a[2]:
                     self.info["hillclimbing"][0].append(tuple(i))
+                    self.allPath["hillclimbing"][0].append(tuple(i))
 
                 self.info["hillclimbing"][0].append(tuple(self.posEnd))
+                self.allPath["hillclimbing"][0].append(tuple(self.posEnd))
                 return
             current = a[0]
             self.heuristics["hillclimbing"].append(a[1])
@@ -440,12 +448,22 @@ class GameAI:
         pygame.draw.rect(
             self.win, (self.activeAllBots[1]), self.activeAllBots[0], 10, 4
         )
+        textRender = self.font.render("X" + str(self.speed[0]), True, (0, 0, 0))
+        self.win.blit(textRender, (950, 200))
+        self.speed[1].width = textRender.get_size()[0]
+        self.speed[1].height = textRender.get_size()[1]
         dy = 0
         textRender = self.font.render(self.textPlayer, True, (0, 0, 0))
         self.win.blit(textRender, (self.sizeImage[0] * self.sizeMap[0] + 130, dy + 147))
         if not self.playerFinish:
             self.win.blit(
                 self.images[2], (self.sizeImage[0] * self.sizeMap[0] + 270, dy + 145)
+            )
+            textRender = self.font.render("Skip", True, (0, 0, 0))
+            self.skipPlayer.width = textRender.get_size()[0]
+            self.skipPlayer.height = textRender.get_size()[1]
+            self.win.blit(
+                textRender, (self.sizeImage[0] * self.sizeMap[0] + 320, dy + 147)
             )
         for i, j in self.info.items():
             dy += 100
@@ -481,7 +499,6 @@ class GameAI:
                     self.Bfs()
                     self.Hillclimbing()
                     # self.Greedy()
-                    # print(self.info["hillclimbing"][0])
                     # self.AStart()
                 elif i == 1:
                     self.map = np.zeros((self.sizeMap[0], self.sizeMap[1]), dtype=int)
@@ -520,7 +537,13 @@ class GameAI:
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
 
     ## Logic
-    def MovePlayer(self):
+    def MovePlayer(self, mousePos, click):
+        if self.skipPlayer.collidepoint(mousePos) and not self.playerFinish and click:
+            self.player[0] = self.posEnd[1]
+            self.player[1] = self.posEnd[0]
+            self.playerFinish = True
+            return
+
         if self.map[self.player[1] + self.vec[1]][
             self.player[0] + self.vec[0]
         ] == 0 and (self.vec[0] != 0 or self.vec[1] != 0):
@@ -547,6 +570,13 @@ class GameAI:
                     self.info[i][2] = True
 
     def CheckOnBot(self, mousePos):
+        if self.speed[1].collidepoint(mousePos):
+            if self.speed[0] < 5:
+                self.speed[0] += 1
+            elif self.speed[0] == 5:
+                self.speed[0] = 1
+            return
+
         if self.activeAllBots[0].collidepoint(mousePos):
             if self.activeAllBots[2]:
                 self.activeAllBots[1] = (255, 0, 0)
@@ -573,8 +603,10 @@ class GameAI:
 
     def MoveBots(self):
         for i, j in self.info.items():
-            if not self.info[i][2] and self.info[i][6] and self.time % 10 == 0:
-                self.info[i][1] += 1
+            if not self.info[i][2] and self.info[i][6]:
+                self.info[i][8] += self.speed[0]
+                if self.info[i][8] // 10 > self.info[i][1]:
+                    self.info[i][1] += 1
 
     def CheckEndGame(self):
         if self.playerFinish:
@@ -686,8 +718,6 @@ class GameAI:
         for i, j in self.allPath.items():
             self.RenderText()
             self.DrawMap()
-            self.DrawBot()
-            self.DrawPlayer()
             for x in j[0]:
                 pygame.draw.rect(
                     self.win,
@@ -702,13 +732,15 @@ class GameAI:
                     5,
                 )
                 pygame.display.update()
-                pygame.time.delay(100)
+                pygame.time.delay(20)
+            pygame.time.delay(5000)
             self.win.fill((240, 248, 255))
 
     ##
     def Run(self):
         while self.running:
             if not self.menu:
+                mousePos = pygame.mouse.get_pos()
                 self.vec[0], self.vec[1] = 0, 0
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
@@ -730,8 +762,8 @@ class GameAI:
                             break
 
                     if event.type == pygame.MOUSEBUTTONDOWN:
-                        mousePos = pygame.mouse.get_pos()
                         self.CheckOnBot(mousePos)
+                        self.MovePlayer(mousePos, True)
 
                 if self.menu:
                     continue
@@ -744,12 +776,12 @@ class GameAI:
                 self.DrawMap()
                 self.DrawBot()
                 self.CheckWinBot()
-                self.MovePlayer()
+                self.MovePlayer(mousePos, False)
                 self.DrawPlayer()
                 self.MoveBots()
                 self.RenderText()
                 self.fps.tick(60)
-                self.time += 1
+                self.time += 1 * self.speed[0]
             else:
                 if self.createMap:
                     self.win.fill((240, 248, 255))
