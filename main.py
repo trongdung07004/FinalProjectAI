@@ -826,6 +826,14 @@ class GameAI:
         return False
 
     ## Dynamic Display
+    def BotsColor(self):
+        dy = 0
+        color = 0
+        for i, j in self.info.items():
+            dy += 100
+            pygame.draw.rect(self.win, self.allPath[i][1], self.info[i][5], 10, 4)
+            color += 1
+
     def DrawRectMap(self):
         pygame.draw.rect(
             self.win,
@@ -914,6 +922,7 @@ class GameAI:
     def DrawAllPathBots(self):
         for i, j in self.allPath.items():
             self.RenderText()
+            self.BotsColor()
             self.DrawMap()
             for x in j[0]:
                 pygame.draw.rect(
