@@ -8,7 +8,7 @@ import math, copy
 class GameAI:
     def __init__(self):
         pygame.init()
-        self.win = pygame.display.set_mode((1200, 800))
+        self.win = pygame.display.set_mode((1300, 800))
         pygame.display.set_caption("Game AI")
         self.fps = pygame.time.Clock()
         self.font = pygame.font.Font(None, 36)
@@ -123,7 +123,7 @@ class GameAI:
                 (255, 0, 0),
                 pygame.rect.Rect(870, 5 * 100 + 150, 20, 20),
                 False,
-                "Gr_dy",
+                "Greedy",
                 0,
             ],
         }
@@ -151,7 +151,7 @@ class GameAI:
                 pygame.image.load("images/player.png"),
                 (self.sizeImage[0], self.sizeImage[1]),
             ),
-            pygame.transform.scale(pygame.image.load("images/bg.png"), (1220, 800)),
+            pygame.transform.scale(pygame.image.load("images/bg.png"), (1320, 800)),
         ]
 
     # Algorithm
@@ -225,19 +225,24 @@ class GameAI:
     def Heuristic(self, current):
         return abs(current[0] - self.posEnd[0]) + abs(current[1] - self.posEnd[1])
 
-    def FindIntersectionHillclimbing(self, current, visited):
+    def FindIntersection(self, current, visited, mode):
         moves = [(0, -1), (-1, 0), (0, 1), (1, 0)]
         temp = []
+        tempVisited = copy.deepcopy(visited) if mode in ["aStar", "greedy"] else None
+
         for d in moves:
             x, y = current[0] + d[0], current[1] + d[1]
             if (
                 0 <= x < self.sizeMap[0]
                 and 0 <= y < self.sizeMap[1]
-                and (x, y) not in visited
                 and self.map[x][y] == 0
             ):
-                temp.append([x, y])
-                visited.add(tuple([x, y]))
+                if tempVisited is None and (x, y) not in visited:
+                    temp.append([x, y])
+                    visited.add((x, y))
+                elif tempVisited is not None and (x, y) not in tempVisited:
+                    temp.append([x, y])
+                    tempVisited.add((x, y))
 
         intersection = None
         for i in temp:
@@ -246,31 +251,43 @@ class GameAI:
             while count != 0:
                 x, y = path[-1]
                 count = 0
-                a = None
+                nextMove = None
 
                 for d in moves:
                     nx, ny = x + d[0], y + d[1]
                     if (
                         0 <= nx < self.sizeMap[0]
                         and 0 <= ny < self.sizeMap[1]
-                        and (nx, ny) not in visited
                         and self.map[nx][ny] == 0
                     ):
-                        if [nx, ny] == self.posEnd:
-                            return [[nx, ny], 0, path[:]]
-                        count += 1
-                        a = [nx, ny]
+                        if tempVisited is None and (nx, ny) not in visited:
+                            if [nx, ny] == self.posEnd:
+                                return [[nx, ny], 0, path[:]]
+                            count += 1
+                            nextMove = [nx, ny]
+
+                        elif tempVisited is not None and (nx, ny) not in tempVisited:
+                            if [nx, ny] == self.posEnd:
+                                return [[nx, ny], 0, path[:]]
+                            count += 1
+                            nextMove = [nx, ny]
 
                 if count >= 2:
                     heuristic = self.Heuristic([x, y])
-                    if intersection is None or heuristic < intersection[1]:
-                        intersection = [[x, y], heuristic, path[:]]
-                    for i in path:
-                        self.allPath["hillclimbing"][0].append((i))
+                    cost = heuristic + len(path) if mode == "aStar" else heuristic
+
+                    if intersection is None or cost < intersection[1]:
+                        intersection = [[x, y], cost, path[:]]
+
+                    for p in path:
+                        self.allPath[mode][0].append(tuple(p))
                     break
                 elif count == 1:
-                    visited.add(tuple(a))
-                    path.append(a)
+                    path.append(nextMove)
+                    if tempVisited is None:
+                        visited.add(tuple(nextMove))
+                    else:
+                        tempVisited.add(tuple(nextMove))
 
         return intersection
 
@@ -282,7 +299,7 @@ class GameAI:
         self.info["hillclimbing"][0].append(tuple(current))
         self.allPath["hillclimbing"][0].append((current))
         while True:
-            a = self.FindIntersectionHillclimbing(current, visited)
+            a = self.FindIntersection(current, visited, "hillclimbing")
             if a is None or a[1] > self.heuristics["hillclimbing"][-1]:
                 return
             elif a[1] == 0:
@@ -300,60 +317,6 @@ class GameAI:
                 self.allPath["hillclimbing"][0].append((i))
             visited.add(tuple(current))
 
-    def FindIntersectionAStar(self, current, visited):
-        moves = [(0, -1), (-1, 0), (0, 1), (1, 0)]
-        temp = []
-        tempVisited = copy.deepcopy(visited)
-        for d in moves:
-            x, y = current[0] + d[0], current[1] + d[1]
-            if (
-                0 <= x < self.sizeMap[0]
-                and 0 <= y < self.sizeMap[1]
-                and (x, y) not in tempVisited
-                and self.map[x][y] == 0
-            ):
-                temp.append([x, y])
-                tempVisited.add(tuple([x, y]))
-
-        intersection = None
-        for i in temp:
-
-            path = [i]
-            count = None
-            while count != 0:
-                x, y = path[-1]
-                count = 0
-                a = None
-
-                for d in moves:
-                    nx, ny = x + d[0], y + d[1]
-
-                    if (
-                        0 <= nx < self.sizeMap[0]
-                        and 0 <= ny < self.sizeMap[1]
-                        and (nx, ny) not in tempVisited
-                        and self.map[nx][ny] == 0
-                    ):
-                        if [nx, ny] == self.posEnd:
-                            return [[nx, ny], 0, path[:]]
-                        count += 1
-                        a = [nx, ny]
-
-                if count >= 2:
-                    heuristic = self.Heuristic([x, y])
-                    if intersection is None or (
-                        heuristic + len(path) < intersection[1]
-                    ):
-                        intersection = [[x, y], heuristic + len(path), path[:]]
-                    for i in path:
-                        self.allPath["aStar"][0].append(tuple(i))
-                    break
-                elif count == 1:
-                    path.append(a)
-                    tempVisited.add(tuple(a))
-
-        return intersection
-
     def AStar(self):
         visited = set()
         visited.add(tuple(self.posStart))
@@ -362,7 +325,7 @@ class GameAI:
         self.allPath["aStar"][0].append(tuple(current))
         self.intersections["aStar"].append(tuple(current))
         while True:
-            a = self.FindIntersectionAStar(current, visited)
+            a = self.FindIntersection(current, visited, "aStar")
             if a is None:
                 while self.intersections["aStar"][-1] != self.info["aStar"][0][-1]:
                     self.allPath["aStar"][0].append(self.info["aStar"][0].pop())
@@ -387,7 +350,6 @@ class GameAI:
                 self.allPath["aStar"][0].append(tuple(i))
                 visited.add(tuple(i))
 
-    def FindIntersectionGreedy(self, current, visited):
         moves = [(0, -1), (-1, 0), (0, 1), (1, 0)]
         temp = []
         tempVisited = copy.deepcopy(visited)
@@ -447,7 +409,7 @@ class GameAI:
         self.allPath["greedy"][0].append(tuple(current))
         self.intersections["greedy"].append(tuple(current))
         while True:
-            a = self.FindIntersectionAStar(current, visited)
+            a = self.FindIntersection(current, visited)
             if a is None:
                 while self.intersections["greedy"][-1] != self.info["greedy"][0][-1]:
                     self.allPath["greedy"][0].append(self.info["greedy"][0].pop())
@@ -545,15 +507,16 @@ class GameAI:
                         font.bold = True
                         textRender = font.render("No Way", True, (255, 0, 0))
                         self.win.blit(
-                            textRender, ((1200 - textRender.get_size()[0]) // 2, 400)
+                            textRender,
+                            (
+                                (self.win.get_size()[0] - textRender.get_size()[0])
+                                // 2,
+                                400,
+                            ),
                         )
                         pygame.display.update()
                         pygame.time.delay(2000)
                 elif event.key == pygame.K_ESCAPE and self.createMap:
-                    # self.map = np.ones((self.sizeMap[0], self.sizeMap[1]), dtype=int)
-                    # self.createMap = False
-                    # self.posStart = [5, 5]
-                    # self.posEnd = [26, 19]
                     self.__init__()
 
                 elif (
@@ -620,7 +583,7 @@ class GameAI:
             self.win.blit(
                 textRender,
                 (
-                    400 + (400 - size[0]) / 2,
+                    self.win.get_size()[0] / 2 - size[0] / 2,
                     self.rectMenu[i].centery - textRender.get_size()[1] // 2,
                 ),
             )
@@ -725,7 +688,7 @@ class GameAI:
                 self.win.blit(
                     textRender,
                     (
-                        400 + (400 - size[0]) / 2,
+                        self.win.get_size()[0] / 2 - size[0] / 2,
                         self.rectMenu[i].centery - textRender.get_size()[1] // 2,
                     ),
                 )
@@ -821,7 +784,7 @@ class GameAI:
                 ),
             )
             pygame.display.update()
-            pygame.time.delay(5000)
+            pygame.time.delay(3000)
             return True
         return False
 
@@ -924,6 +887,12 @@ class GameAI:
             self.RenderText()
             self.BotsColor()
             self.DrawMap()
+            rect = copy.deepcopy(self.info[i][5])
+            rect.x -= 10
+            rect.y -= 10
+            rect.width = 394
+            rect.height = 40
+            pygame.draw.rect(self.win, j[1], rect, 2, 10)
             for x in j[0]:
                 pygame.draw.rect(
                     self.win,
@@ -939,7 +908,7 @@ class GameAI:
                 )
                 pygame.display.update()
                 pygame.time.delay(20)
-            pygame.time.delay(5000)
+            pygame.time.delay(2000)
             self.win.fill((240, 248, 255))
 
     ##
