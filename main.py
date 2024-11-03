@@ -429,7 +429,7 @@ class GameAI:
                 if count >= 2:
                     heuristic = self.Heuristic([x, y])
                     if intersection is None or heuristic < intersection[1]:
-                        intersection = [[x, y], heuristic + len(path), path[:]]
+                        intersection = [[x, y], heuristic, path[:]]
                     for i in path:
                         self.allPath["greedy"][0].append(tuple(i))
                     break
