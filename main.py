@@ -409,7 +409,7 @@ class GameAI:
         self.allPath["greedy"][0].append(tuple(current))
         self.intersections["greedy"].append(tuple(current))
         while True:
-            a = self.FindIntersection(current, visited)
+            a = self.FindIntersection(current, visited, "greedy")
             if a is None:
                 while self.intersections["greedy"][-1] != self.info["greedy"][0][-1]:
                     self.allPath["greedy"][0].append(self.info["greedy"][0].pop())
