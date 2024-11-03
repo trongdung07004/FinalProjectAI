@@ -350,57 +350,6 @@ class GameAI:
                 self.allPath["aStar"][0].append(tuple(i))
                 visited.add(tuple(i))
 
-        moves = [(0, -1), (-1, 0), (0, 1), (1, 0)]
-        temp = []
-        tempVisited = copy.deepcopy(visited)
-        for d in moves:
-            x, y = current[0] + d[0], current[1] + d[1]
-            if (
-                0 <= x < self.sizeMap[0]
-                and 0 <= y < self.sizeMap[1]
-                and (x, y) not in tempVisited
-                and self.map[x][y] == 0
-            ):
-                temp.append([x, y])
-                tempVisited.add(tuple([x, y]))
-
-        intersection = None
-        for i in temp:
-
-            path = [i]
-            count = None
-            while count != 0:
-                x, y = path[-1]
-                count = 0
-                a = None
-
-                for d in moves:
-                    nx, ny = x + d[0], y + d[1]
-
-                    if (
-                        0 <= nx < self.sizeMap[0]
-                        and 0 <= ny < self.sizeMap[1]
-                        and (nx, ny) not in tempVisited
-                        and self.map[nx][ny] == 0
-                    ):
-                        if [nx, ny] == self.posEnd:
-                            return [[nx, ny], 0, path[:]]
-                        count += 1
-                        a = [nx, ny]
-
-                if count >= 2:
-                    heuristic = self.Heuristic([x, y])
-                    if intersection is None or heuristic < intersection[1]:
-                        intersection = [[x, y], heuristic, path[:]]
-                    for i in path:
-                        self.allPath["greedy"][0].append(tuple(i))
-                    break
-                elif count == 1:
-                    path.append(a)
-                    tempVisited.add(tuple(a))
-
-        return intersection
-
     def Greedy(self):
         visited = set()
         visited.add(tuple(self.posStart))
