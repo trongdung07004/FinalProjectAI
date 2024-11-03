@@ -2,7 +2,7 @@ import pygame
 import random
 import numpy as np
 from collections import deque
-import math
+import math, copy
 
 
 class GameAI:
@@ -98,19 +98,33 @@ class GameAI:
                 "Hcb",
                 0,
             ],
-            # "greedy": [[], 0, False, pygame.transform.scale(pygame.image.load("images/greedy.png"), (self.sizeImage[0], self.sizeImage[1])), (255, 0, 0), pygame.rect.Rect(870, 3*100 + 150, 20, 20), False, "Greedy", 0],
-            # "aStar": [[], 0, False, pygame.transform.scale(pygame.image.load("images/astar.png"), (self.sizeImage[0], self.sizeImage[1])), (255, 0, 0), pygame.rect.Rect(870, 5*100 + 150, 20, 20), False, "A*", 0]
+            "aStar": [
+                [],
+                0,
+                False,
+                pygame.transform.scale(
+                    pygame.image.load("images/astar.png"),
+                    (self.sizeImage[0], self.sizeImage[1]),
+                ),
+                (255, 0, 0),
+                pygame.rect.Rect(870, 4 * 100 + 150, 20, 20),
+                False,
+                "A*",
+                0,
+            ],
+            # "greedy": [[], 0, False, pygame.transform.scale(pygame.image.load("images/greedy.png"), (self.sizeImage[0], self.sizeImage[1])), (255, 0, 0), pygame.rect.Rect(870, 5*100 + 150, 20, 20), False, "Greedy", 0],
         }
         self.allPath = {
             "dfs": [[], (95, 87, 78)],
             "bfs": [[], (174, 195, 240)],
             "hillclimbing": [[], (70, 94, 86)],
+            "aStar": [[], (16, 102, 114)],
             # "greedy":[[], (236, 239, 243)],
-            # "aStar":[[], (16, 102, 114)]
         }
         self.heuristics = {
             "hillclimbing": [],
         }
+        self.intersections = []
         self.images = [
             pygame.transform.scale(
                 pygame.image.load("images/finish.png"),
@@ -201,7 +215,6 @@ class GameAI:
     def FindIntersectionHillclimbing(self, current, visited):
         moves = [(0, -1), (-1, 0), (0, 1), (1, 0)]
         temp = []
-        self.allPath["hillclimbing"][0].append((current))
         for d in moves:
             x, y = current[0] + d[0], current[1] + d[1]
             if (
@@ -254,6 +267,7 @@ class GameAI:
         visited.add(tuple(self.posStart))
         current = self.posStart
         self.info["hillclimbing"][0].append(tuple(current))
+        self.allPath["hillclimbing"][0].append((current))
         while True:
             a = self.FindIntersectionHillclimbing(current, visited)
             if a is None or a[1] > self.heuristics["hillclimbing"][-1]:
@@ -270,12 +284,97 @@ class GameAI:
             self.heuristics["hillclimbing"].append(a[1])
             for i in a[2]:
                 self.info["hillclimbing"][0].append(tuple(i))
+                self.allPath["hillclimbing"][0].append((i))
             visited.add(tuple(current))
 
-    def Greedy(self):
-        pass
+    def FindIntersectionAStar(self, current, visited):
+        moves = [(0, -1), (-1, 0), (0, 1), (1, 0)]
+        temp = []
+        tempVisited = copy.deepcopy(visited)
+        for d in moves:
+            x, y = current[0] + d[0], current[1] + d[1]
+            if (
+                0 <= x < self.sizeMap[0]
+                and 0 <= y < self.sizeMap[1]
+                and (x, y) not in tempVisited
+                and self.map[x][y] == 0
+            ):
+                temp.append([x, y])
+                tempVisited.add(tuple([x, y]))
+
+        intersection = None
+        for i in temp:
+
+            path = [i]
+            count = None
+            while count != 0:
+                x, y = path[-1]
+                count = 0
+                a = None
+
+                for d in moves:
+                    nx, ny = x + d[0], y + d[1]
+
+                    if (
+                        0 <= nx < self.sizeMap[0]
+                        and 0 <= ny < self.sizeMap[1]
+                        and (nx, ny) not in tempVisited
+                        and self.map[nx][ny] == 0
+                    ):
+                        if [nx, ny] == self.posEnd:
+                            return [[nx, ny], 0, path[:]]
+                        count += 1
+                        a = [nx, ny]
+
+                if count >= 2:
+                    heuristic = self.Heuristic([x, y])
+                    if intersection is None or (
+                        heuristic + len(path) < intersection[1]
+                    ):
+                        intersection = [[x, y], heuristic + len(path), path[:]]
+                    for i in path:
+                        self.allPath["aStar"][0].append(tuple(i))
+                    break
+                elif count == 1:
+                    path.append(a)
+                    tempVisited.add(tuple(a))
+
+        return intersection
 
     def AStar(self):
+        visited = set()
+        visited.add(tuple(self.posStart))
+        current = self.posStart
+        self.info["aStar"][0].append(tuple(current))
+        self.allPath["aStar"][0].append(tuple(current))
+        self.intersections.append(tuple(current))
+        while True:
+            a = self.FindIntersectionAStar(current, visited)
+            if a is None:
+                while self.intersections[-1] != self.info["aStar"][0][-1]:
+                    self.allPath["aStar"][0].append(self.info["aStar"][0].pop())
+
+                current = self.info["aStar"][0][-1]
+                self.allPath["aStar"][0].append(tuple(current))
+                self.intersections.pop()
+                continue
+            elif a[1] == 0:
+                for i in a[2]:
+                    self.info["aStar"][0].append(tuple(i))
+                    self.allPath["aStar"][0].append(tuple(i))
+
+                self.info["aStar"][0].append(tuple(self.posEnd))
+                self.allPath["aStar"][0].append(tuple(self.posEnd))
+                return
+
+            self.intersections.append(tuple(a[0]))
+            current = a[0]
+            for i in a[2]:
+                self.info["aStar"][0].append(tuple(i))
+                self.allPath["aStar"][0].append(tuple(i))
+                visited.add(tuple(i))
+
+    def Greedy(self):
         pass
 
     ## Stactic Display
@@ -342,6 +441,7 @@ class GameAI:
                     if self.Bfs():
                         self.Dfs()
                         self.Hillclimbing()
+                        self.AStar()
                         self.menu = False
                         self.createMap = False
                     else:
@@ -498,8 +598,9 @@ class GameAI:
                     self.Dfs()
                     self.Bfs()
                     self.Hillclimbing()
+                    self.AStar()
                     # self.Greedy()
-                    # self.AStart()
+
                 elif i == 1:
                     self.map = np.zeros((self.sizeMap[0], self.sizeMap[1]), dtype=int)
                     self.createMap = True
