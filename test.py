@@ -356,3 +356,44 @@ def get_center_color(image_path):
 image_path = "images/ucs.png"  # Đường dẫn tới ảnh của bạn
 center_color = get_center_color(image_path)
 print("Màu tại trung tâm là:", center_color)
+# while True:
+#     if view:
+#         mousePos = pygame.mouse.get_pos()
+#         for event in pygame.event.get():
+#             if event.type == pygame.QUIT:
+#                 exit()
+#             if event.type == pygame.KEYDOWN:
+#                 if event.key == pygame.K_ESCAPE:
+#                     return
+
+#             if event.type == pygame.MOUSEBUTTONDOWN and temp is not None:
+#                 for i in temp:
+#                     if i[0].collidepoint(mousePos):
+#                         self.RenderText()
+#                         self.BotsColor()
+#                         self.DrawMap()
+#                         overlaySurface = pygame.Surface(
+#                             self.sizeImage, pygame.SRCALPHA
+#                         )
+#                         pygame.draw.rect(self.win, (0, 0, 0), i[0], 2, 10)
+#                         for x in self.allPath[i[1]][0]:
+#                             pygame.draw.rect(
+#                                 overlaySurface,
+#                                 self.allPath[i[1]][1],
+#                                 pygame.Rect(
+#                                     0, 0, self.sizeImage[0], self.sizeImage[1]
+#                                 ),
+#                                 15,
+#                                 5,
+#                             )
+#                             self.win.blit(
+#                                 overlaySurface,
+#                                 (
+#                                     x[1] * self.sizeImage[0] + self.dx,
+#                                     x[0] * self.sizeImage[1] + self.dy,
+#                                 ),
+#                             )
+#                             pygame.display.update()
+#                             pygame.time.delay(20)
+
+#     else:

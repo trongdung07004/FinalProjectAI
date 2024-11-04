@@ -146,7 +146,7 @@ class GameAI:
             "bfs": [[], (174, 195, 240, 128)],
             "hillclimbing": [[], (70, 94, 86, 128)],
             "aStar": [[], (16, 102, 114, 128)],
-            "greedy": [[], (255, 239, 243, 128)],
+            "greedy": [[], (255, 239, 243, 255)],
             "ucs": [[], (58, 58, 58, 128)],
         }
         self.heuristics = {
@@ -480,7 +480,8 @@ class GameAI:
     def CheckCreateMap(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                self.running = False
+                pygame.quit()
+                exit()
 
             elif event.type == pygame.MOUSEBUTTONDOWN and not self.isDragging:
                 self.isDragging = True
@@ -781,7 +782,6 @@ class GameAI:
                 if not self.info[i][2]:
                     return False
 
-            self.DrawAllPathBots()
             textRender = self.font.render("End Game", True, (255, 0, 0))
             self.win.blit(
                 textRender,
@@ -791,7 +791,6 @@ class GameAI:
                 ),
             )
             pygame.display.update()
-            pygame.time.delay(3000)
             return True
         return False
 
@@ -889,42 +888,98 @@ class GameAI:
                 ),
             )
 
-    def DrawAllPathBots(self):
-        for i, j in self.allPath.items():
+    def DrawRecordBot(self, info):
+        for j in info[0]:
+            self.win.fill((240, 248, 255))
+            self.DrawMap()
             self.RenderText()
             self.BotsColor()
             self.DrawMap()
+            self.win.blit(
+                info[3],
+                (
+                    j[1] * self.sizeImage[0] + self.dx,
+                    j[0] * self.sizeImage[1] + self.dy,
+                ),
+            )
+            pygame.time.delay(60)
+            pygame.display.update()
 
-            overlaySurface = pygame.Surface(self.sizeImage, pygame.SRCALPHA)
-
+    def DrawAllPathBots(self):
+        temp = []
+        for i, j in self.allPath.items():
             rect = copy.deepcopy(self.info[i][5])
             rect.x -= 10
             rect.y -= 10
             rect.width = 394
             rect.height = 40
+            temp.append(([rect, i]))
 
             pygame.draw.rect(self.win, (0, 0, 0), rect, 2, 10)
 
-            for x in j[0]:
-                pygame.draw.rect(
-                    overlaySurface,
-                    j[1],
-                    pygame.Rect(0, 0, self.sizeImage[0], self.sizeImage[1]),
-                    15,
-                    5,
-                )
-                self.win.blit(
-                    overlaySurface,
-                    (
-                        x[1] * self.sizeImage[0] + self.dx,
-                        x[0] * self.sizeImage[1] + self.dy,
-                    ),
-                )
-                pygame.display.update()
-                pygame.time.delay(20)
+        while True:
+            for event in pygame.event.get():
+                mousePos = pygame.mouse.get_pos()
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        return
 
-            pygame.time.delay(2000)
-            self.win.fill((240, 248, 255))
+                if event.type == pygame.MOUSEBUTTONDOWN and temp is not None:
+                    for i, j in self.info.items():
+                        if j[5].collidepoint(mousePos):
+                            self.DrawRecordBot(self.info[i])
+                            break
+                    else:
+                        for i in range(0, len(temp)):
+                            if temp[i][0].collidepoint(mousePos):
+                                self.win.fill((240, 248, 255))
+                                overlaySurface = pygame.Surface(
+                                    self.sizeImage, pygame.SRCALPHA
+                                )
+                                pygame.draw.rect(self.win, (0, 0, 0), temp[i][0], 0, 10)
+                                self.RenderText()
+                                self.BotsColor()
+                                self.DrawMap()
+                                textRender = self.font.render(
+                                    self.info[temp[i][1]][7], True, (255, 255, 255)
+                                )
+                                self.win.blit(
+                                    textRender,
+                                    (
+                                        self.sizeImage[0] * self.sizeMap[0] + 130,
+                                        i * 100 + 247,
+                                    ),
+                                )
+                                pygame.display.update()
+                                for x in self.allPath[temp[i][1]][0]:
+                                    pygame.draw.rect(
+                                        overlaySurface,
+                                        self.allPath[temp[i][1]][1],
+                                        pygame.Rect(
+                                            0, 0, self.sizeImage[0], self.sizeImage[1]
+                                        ),
+                                        15,
+                                        5,
+                                    )
+                                    self.win.blit(
+                                        overlaySurface,
+                                        (
+                                            x[1] * self.sizeImage[0] + self.dx,
+                                            x[0] * self.sizeImage[1] + self.dy,
+                                        ),
+                                    )
+                                    updateRect = overlaySurface.get_rect(
+                                        topleft=(
+                                            x[1] * self.sizeImage[0] + self.dx,
+                                            x[0] * self.sizeImage[1] + self.dy,
+                                        )
+                                    )
+                                    pygame.display.update(updateRect)
+                                    pygame.time.delay(20)
+            pygame.display.update()
 
     ##
     def Run(self):
@@ -934,7 +989,8 @@ class GameAI:
                 self.vec[0], self.vec[1] = 0, 0
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
-                        self.running = False
+                        pygame.quit()
+                        exit()
 
                     if event.type == pygame.KEYDOWN:
                         if not self.playerFinish:
@@ -959,6 +1015,7 @@ class GameAI:
                     continue
 
                 if self.CheckEndGame():
+                    self.DrawAllPathBots()
                     self.__init__()
                     continue
 
