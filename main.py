@@ -895,7 +895,7 @@ class GameAI:
             self.BotsColor()
             self.DrawMap()
 
-            overlay_surface = pygame.Surface(self.sizeImage, pygame.SRCALPHA)
+            overlaySurface = pygame.Surface(self.sizeImage, pygame.SRCALPHA)
 
             rect = copy.deepcopy(self.info[i][5])
             rect.x -= 10
@@ -907,14 +907,14 @@ class GameAI:
 
             for x in j[0]:
                 pygame.draw.rect(
-                    overlay_surface,
+                    overlaySurface,
                     j[1],
                     pygame.Rect(0, 0, self.sizeImage[0], self.sizeImage[1]),
                     15,
                     5,
                 )
                 self.win.blit(
-                    overlay_surface,
+                    overlaySurface,
                     (
                         x[1] * self.sizeImage[0] + self.dx,
                         x[0] * self.sizeImage[1] + self.dy,
