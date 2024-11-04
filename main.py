@@ -126,18 +126,33 @@ class GameAI:
                 "Greedy",
                 0,
             ],
+            "ucs": [
+                [],
+                0,
+                False,
+                pygame.transform.scale(
+                    pygame.image.load("images/ucs.png"),
+                    (self.sizeImage[0], self.sizeImage[1]),
+                ),
+                (255, 0, 0),
+                pygame.rect.Rect(870, 6 * 100 + 150, 20, 20),
+                False,
+                "Ucs",
+                0,
+            ],
         }
         self.allPath = {
-            "dfs": [[], (95, 87, 78)],
-            "bfs": [[], (174, 195, 240)],
-            "hillclimbing": [[], (70, 94, 86)],
-            "aStar": [[], (16, 102, 114)],
-            "greedy": [[], (255, 239, 243)],
+            "dfs": [[], (95, 87, 78, 128)],
+            "bfs": [[], (174, 195, 240, 128)],
+            "hillclimbing": [[], (70, 94, 86, 128)],
+            "aStar": [[], (16, 102, 114, 128)],
+            "greedy": [[], (255, 239, 243, 128)],
+            "ucs": [[], (58, 58, 58, 128)],
         }
         self.heuristics = {
             "hillclimbing": [],
         }
-        self.intersections = {"aStar": [], "greedy": []}
+        self.intersections = {"aStar": [], "greedy": [], "ucs": []}
         self.images = [
             pygame.transform.scale(
                 pygame.image.load("images/finish.png"),
@@ -228,7 +243,9 @@ class GameAI:
     def FindIntersection(self, current, visited, mode):
         moves = [(0, -1), (-1, 0), (0, 1), (1, 0)]
         temp = []
-        tempVisited = copy.deepcopy(visited) if mode in ["aStar", "greedy"] else None
+        tempVisited = (
+            copy.deepcopy(visited) if mode in ["aStar", "greedy", "ucs"] else None
+        )
 
         for d in moves:
             x, y = current[0] + d[0], current[1] + d[1]
@@ -274,7 +291,13 @@ class GameAI:
 
                 if count >= 2:
                     heuristic = self.Heuristic([x, y])
-                    cost = heuristic + len(path) if mode == "aStar" else heuristic
+                    cost = None
+                    if mode == "aStar":
+                        cost = heuristic + len(path)
+                    elif mode == "ucs":
+                        cost = len(path)
+                    else:
+                        cost = heuristic
 
                     if intersection is None or cost < intersection[1]:
                         intersection = [[x, y], cost, path[:]]
@@ -383,6 +406,39 @@ class GameAI:
                 self.allPath["greedy"][0].append(tuple(i))
                 visited.add(tuple(i))
 
+    def Ucs(self):
+        visited = set()
+        visited.add(tuple(self.posStart))
+        current = self.posStart
+        self.info["ucs"][0].append(tuple(current))
+        self.allPath["ucs"][0].append(tuple(current))
+        self.intersections["ucs"].append(tuple(current))
+        while True:
+            a = self.FindIntersection(current, visited, "ucs")
+            if a is None:
+                while self.intersections["ucs"][-1] != self.info["ucs"][0][-1]:
+                    self.allPath["ucs"][0].append(self.info["ucs"][0].pop())
+
+                current = self.info["ucs"][0][-1]
+                self.allPath["ucs"][0].append(tuple(current))
+                self.intersections["ucs"].pop()
+                continue
+            elif a[1] == 0:
+                for i in a[2]:
+                    self.info["ucs"][0].append(tuple(i))
+                    self.allPath["ucs"][0].append(tuple(i))
+
+                self.info["ucs"][0].append(tuple(self.posEnd))
+                self.allPath["ucs"][0].append(tuple(self.posEnd))
+                return
+
+            self.intersections["ucs"].append(tuple(a[0]))
+            current = a[0]
+            for i in a[2]:
+                self.info["ucs"][0].append(tuple(i))
+                self.allPath["ucs"][0].append(tuple(i))
+                visited.add(tuple(i))
+
     ## Stactic Display
     def CreateMap(self):
         moves = [(0, -2), (-2, 0), (0, 2), (2, 0)]
@@ -449,6 +505,7 @@ class GameAI:
                         self.Hillclimbing()
                         self.AStar()
                         self.Greedy()
+                        self.Ucs()
                         self.menu = False
                         self.createMap = False
                     else:
@@ -608,6 +665,7 @@ class GameAI:
                     self.Hillclimbing()
                     self.AStar()
                     self.Greedy()
+                    self.Ucs()
 
                 elif i == 1:
                     self.map = np.zeros((self.sizeMap[0], self.sizeMap[1]), dtype=int)
@@ -836,27 +894,35 @@ class GameAI:
             self.RenderText()
             self.BotsColor()
             self.DrawMap()
+
+            overlay_surface = pygame.Surface(self.sizeImage, pygame.SRCALPHA)
+
             rect = copy.deepcopy(self.info[i][5])
             rect.x -= 10
             rect.y -= 10
             rect.width = 394
             rect.height = 40
-            pygame.draw.rect(self.win, j[1], rect, 2, 10)
+
+            pygame.draw.rect(self.win, (0, 0, 0), rect, 2, 10)
+
             for x in j[0]:
                 pygame.draw.rect(
-                    self.win,
+                    overlay_surface,
                     j[1],
-                    pygame.rect.Rect(
-                        x[1] * self.sizeImage[0] + self.dx,
-                        x[0] * self.sizeImage[1] + self.dy,
-                        self.sizeImage[0],
-                        self.sizeImage[1],
-                    ),
+                    pygame.Rect(0, 0, self.sizeImage[0], self.sizeImage[1]),
                     15,
                     5,
                 )
+                self.win.blit(
+                    overlay_surface,
+                    (
+                        x[1] * self.sizeImage[0] + self.dx,
+                        x[0] * self.sizeImage[1] + self.dy,
+                    ),
+                )
                 pygame.display.update()
                 pygame.time.delay(20)
+
             pygame.time.delay(2000)
             self.win.fill((240, 248, 255))
 

@@ -324,3 +324,35 @@
 #     run.info["aStar"][2] = False
 #     run.info["aStar"][6] = True
 #     run.Run()
+
+
+import pygame
+
+
+def get_center_color(image_path):
+    # Khởi tạo pygame
+    pygame.init()
+
+    # Tải ảnh bằng pygame
+    img = pygame.image.load(image_path)
+
+    # Lấy kích thước ảnh
+    width, height = img.get_size()
+
+    # Tính tọa độ trung tâm
+    center_x = 15
+    center_y = 15
+
+    # Lấy màu tại điểm trung tâm
+    center_color = img.get_at((center_x, center_y))[:3]
+
+    # Kết thúc pygame
+    pygame.quit()
+
+    return center_color
+
+
+# Sử dụng hàm
+image_path = "images/ucs.png"  # Đường dẫn tới ảnh của bạn
+center_color = get_center_color(image_path)
+print("Màu tại trung tâm là:", center_color)
