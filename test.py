@@ -127,56 +127,7 @@ class GameAI:
         return abs(current[0] - self.posEnd[0]) + abs(current[1] - self.posEnd[1])
 
     def FindIntersectionAStar(self, current, visited):
-        moves = [(0, -1), (-1, 0), (0, 1), (1, 0)]
-        temp = []
-        tempVisited = copy.deepcopy(visited)
-        for d in moves:
-            x, y = current[0] + d[0], current[1] + d[1]
-            if (
-                0 <= x < self.sizeMap[0]
-                and 0 <= y < self.sizeMap[1]
-                and (x, y) not in tempVisited
-                and self.map[x][y] == 0
-            ):
-                temp.append([x, y])
-                tempVisited.add(tuple([x, y]))
-
-        intersection = None
-        for i in temp:
-
-            path = [i]
-            count = None
-            while count != 0:
-                x, y = path[-1]
-                count = 0
-                a = None
-
-                for d in moves:
-                    nx, ny = x + d[0], y + d[1]
-
-                    if (
-                        0 <= nx < self.sizeMap[0]
-                        and 0 <= ny < self.sizeMap[1]
-                        and (nx, ny) not in tempVisited
-                        and self.map[nx][ny] == 0
-                    ):
-                        if [nx, ny] == self.posEnd:
-                            return [[nx, ny], 0, path[:]]
-                        count += 1
-                        a = [nx, ny]
-
-                if count >= 2:
-                    heuristic = self.Heuristic([x, y])
-                    if intersection is None or (
-                        heuristic + len(path) < intersection[1]
-                    ):
-                        intersection = [[x, y], heuristic + len(path), path[:]]
-                    break
-                elif count == 1:
-                    path.append(a)
-                    tempVisited.add(tuple(a))
-
-        return intersection
+        pass
 
     def AStar(self):
         visited = set()
@@ -203,6 +154,73 @@ class GameAI:
                 for i in a[2]:
                     self.info["aStar"][0].append(tuple(i))
                     visited.add(tuple(i))
+
+    def Dfs(self):
+        self.info["dfs"][0].append(tuple(self.posStart))
+        depth = [tuple(self.posStart)]
+        moves = [(0, -1), (-1, 0), (0, 1), (1, 0)]
+        visited = set()
+        visited.add(tuple(self.posStart))
+        while self.info["dfs"][0][-1] != tuple(self.posEnd):
+            x, y = self.info["dfs"][0][-1]
+            foundMove = False
+            random.shuffle(moves)
+            random.shuffle(moves)
+            for d in moves:
+                nx, ny = x + d[0], y + d[1]
+                if 0 <= nx < self.sizeMap[0] and 0 <= ny < self.sizeMap[1]:
+                    if (nx, ny) not in visited and self.map[nx][ny] == 0:
+                        visited.add((nx, ny))
+                        self.info["dfs"][0].append((nx, ny))
+                        depth.append((nx, ny))
+                        foundMove = True
+                        break
+
+            if not foundMove:
+                if depth:
+                    depth.pop()
+                if depth:
+                    self.info["dfs"][0].append(depth[-1])
+                else:
+                    break
+
+        self.allPath["dfs"][0] = self.info["dfs"][0]
+
+    def Bfs(self):
+        queue = deque([tuple(self.posStart)])
+        visited = set()
+        visited.add(tuple(self.posStart))
+        parent = {}
+        parent[tuple(self.posStart)] = None
+        moves = [(0, -1), (-1, 0), (0, 1), (1, 0)]
+        allPath = [tuple(self.posStart)]
+        while queue:
+            x, y = queue.popleft()
+            if (x, y) == tuple(self.posEnd):
+
+                break
+            random.shuffle(moves)
+            for d in moves:
+                nx, ny = x + d[0], y + d[1]
+
+                if 0 <= nx < self.sizeMap[0] and 0 <= ny < self.sizeMap[1]:
+                    if (nx, ny) not in visited and self.map[nx][ny] == 0:
+                        visited.add((nx, ny))
+                        queue.append((nx, ny))
+                        allPath.append((nx, ny))
+                        parent[(nx, ny)] = (x, y)
+
+        current = tuple(self.posEnd)
+        allPath.append(tuple(self.posEnd))
+        self.allPath["bfs"][0] = allPath
+        while current:
+            self.info["bfs"][0].append(current)
+            try:
+                current = parent[current]
+            except:
+                return False
+        self.info["bfs"][0].reverse()
+        return True
 
     ## Stactic Display
     def CreateMap(self):
